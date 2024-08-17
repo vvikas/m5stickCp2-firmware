@@ -1,6 +1,7 @@
 #if defined(LANGUAGE_EN_US)
   #define TXT_BACK "Back"
   #define TXT_CLOCK "Clock"
+  #define TXT_COUNTDOWN "Countdown"
   #define TXT_SETTINGS "Settings"
   #define TXT_NEVER "Never"
   #define TXT_SEC "seconds"
@@ -10,6 +11,7 @@
   #define TXT_BATT_INFO "Battery Info"
   #define TXT_BRIGHT "Brightness"
   #define TXT_SET_CLOCK "Set Clock"
+  #define TXT_SET_COUNTDOWN "Set Countdown"
   #define TXT_ROTATION "Rotation"
   #define TXT_ABOUT "About"
   #define TXT_REBOOT "Reboot"

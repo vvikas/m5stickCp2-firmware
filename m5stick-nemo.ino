@@ -243,6 +243,8 @@ String apSsidName = String("");
 bool isSwitching = true;
 #if defined(RTC)
   int current_proc = 0; // Start in Clock Mode
+  int countdown_seconds = 30*60;
+  int countdown_start = 0;
 #else
   int current_proc = 1; // Start in Main Menu mode if no RTC
 #endif
@@ -426,6 +428,7 @@ bool check_select_press(){
 MENU mmenu[] = {
 #if defined(RTC)
   { TXT_CLOCK, 0},
+  { TXT_COUNTDOWN, 30},
 #endif
   { "TV-B-Gone", 13}, // We jump to the region menu first
   { "Bluetooth", 16},
@@ -570,6 +573,7 @@ MENU smenu[] = {
   { TXT_BRIGHT, 4},
 #if defined(RTC)
   { TXT_SET_CLOCK, 3},
+  { TXT_SET_COUNTDOWN, 31},
 #endif
 #if defined(ROTATION)
   { TXT_ROTATION, 7},
@@ -1252,8 +1256,33 @@ void sendAllCodes() {
 
 /// CLOCK ///
 /// TIMESET ///
-
 #if defined(RTC)
+  void countdown_setup() {
+    DISP.fillScreen(BGCOLOR);
+    DISP.setTextSize(1);
+    countdown_start = millis();
+  }
+
+  void countdown_loop() {
+    #if defined(STICK_C_PLUS2)
+      DISP.setCursor(10, 40, 7);
+      int diff_ms = millis()-countdown_start;
+      int time_left_s = countdown_seconds - (diff_ms/1000);
+      int time_left_m = time_left_s/60;
+      time_left_s = time_left_s%60;
+      if(time_left_s >= 0){
+        DISP.printf("%02d:%02d:%02d\n", time_left_m/60, time_left_m%60, time_left_s);
+      }else{
+        DISP.printf("%02d:%02d:%02d\n", 0, 0, 0);
+        // TODO generalise for other devices if ever
+        StickCP2.Speaker.tone(6000, 100);
+        delay(200);
+        StickCP2.Speaker.stop();
+      }
+    #endif
+    check_select_press();
+  }
+
   void clock_setup() {
     DISP.fillScreen(BGCOLOR);
     DISP.setTextSize(1);
@@ -1269,6 +1298,54 @@ void sendAllCodes() {
       DISP.printf("%02d:%02d:%02d\n", M5.Rtc.Hour, M5.Rtc.Minute, M5.Rtc.Second);
     #endif
     check_select_press();
+  }
+
+  /// COUNTDOWN SETTING
+  void cdown_setup() {
+    rstOverride = true;
+    DISP.fillScreen(BGCOLOR);
+    DISP.setCursor(0, 0);
+    DISP.println(TXT_SET_HOUR);
+    delay(2000);
+  }
+  void cdown_loop() {
+    cursor = 0;
+    number_drawmenu(24);
+    while(digitalRead(M5_BUTTON_HOME) == HIGH) {
+      if (check_next_press()) {
+        cursor++;
+        cursor = cursor % 24 ;
+        number_drawmenu(24);
+        delay(100);
+      }
+    }
+    int hour = cursor;
+
+    cursor = 0;
+    DISP.fillScreen(BGCOLOR);
+    DISP.setCursor(0, 0);
+    DISP.println(TXT_SET_MIN);
+    delay(2000);
+
+    number_drawmenu(60);
+    while(digitalRead(M5_BUTTON_HOME) == HIGH) {
+      if (check_next_press()) {
+        cursor++;
+        cursor = cursor % 60 ;
+        number_drawmenu(60);
+        delay(100);
+      }
+    }
+    int minute = cursor;
+
+    DISP.fillScreen(BGCOLOR);
+    DISP.setCursor(0, 0);
+    DISP.printf("Countdown set: \n%02d:%02d:00", hour, minute);
+    countdown_seconds = (hour*60 + minute)*60;
+    delay(2000);
+    rstOverride = false;
+    isSwitching = true;
+    current_proc = 30; // go to countdown
   }
 
   /// TIME SETTING ///
@@ -2468,6 +2545,12 @@ void loop() {
       case 0:
         clock_setup();
         break;
+      case 30:
+        countdown_setup();
+        break;
+      case 31:
+        cdown_setup();
+        break;
 #endif
       case 1:
         mmenu_setup();
@@ -2558,6 +2641,12 @@ void loop() {
 #if defined(RTC)
     case 0:
       clock_loop();
+      break;
+    case 30:
+      countdown_loop();
+      break;
+    case 31:
+      cdown_loop();
       break;
 #endif
     case 1:
