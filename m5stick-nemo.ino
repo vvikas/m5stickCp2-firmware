@@ -69,6 +69,14 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 #if defined(STICK_C_PLUS2)
   #include <M5StickCPlus2.h>
   #include "driver/rtc_io.h"
+
+  // for IOT remote control
+  #include <WiFi.h>
+  #include <HTTPClient.h>
+  #include <WiFiClientSecure.h>
+
+  const char* ssid = "AskMeForSecret";
+  const char* password = "secret";
   // -=-=- Display -=-=-
   String platformName="StickC+2";
   #define BIG_TEXT 4
@@ -2046,6 +2054,7 @@ void btmaelstrom_loop(){
 /// WIFI MENU ///
 MENU wsmenu[] = {
   { TXT_BACK, 5},
+  { "IOT webcontrol", 6},
   { TXT_WF_SCAN, 0},
   { TXT_WF_SPAM_FUN, 1},
   { TXT_WF_SPAM_RR, 2},
@@ -2093,6 +2102,9 @@ void wsmenu_loop() {
         break;
       case 5:
         current_proc = 1;
+        break;
+      case 6:
+        current_proc = 32;
         break;
     }
   }
@@ -2519,8 +2531,99 @@ void portal_loop(){
   check_select_press();
 }
 
+// IOT webcontrol
+
+MENU iotmenu[] = {
+  { TXT_BACK, 0},
+  { "On  - Oak mini", 1},
+  { "Off - Oak mini", 2},
+};
+int iotmenu_size = sizeof(iotmenu) / sizeof (MENU);
+
+void iot_webremote_setup(){
+  iot_wifi_start();
+
+  cursor = 0;
+  rstOverride = true;
+  drawmenu(iotmenu, iotmenu_size);
+  delay(250); // Prevent switching after menu loads up
+}
+
+void iot_webremote_loop(){
+  if (check_next_press()) {
+    cursor++;
+    cursor = cursor % iotmenu_size;
+    drawmenu(iotmenu, iotmenu_size);
+    delay(250); // Prevent switching after menu loads up
+  }
+  if (check_select_press()) {
+    int option = iotmenu[cursor].command;
+    current_proc = 32;
+    isSwitching = false;
+    switch(option) {
+      case 0:
+        iot_wifi_end();
+        isSwitching = true;
+        current_proc = 12;
+        break;
+      case 1:
+        get_request("https://blr1.blynk.cloud/external/api/update?token=SECRET_TOKEN&v0=1");
+        break;
+      case 2:
+        get_request("https://blr1.blynk.cloud/external/api/update?token=SECRET_TOKEN&v0=0");
+        break;
+    }
+  }
+}
+
+void iot_wifi_start(){
+  WiFi.begin(ssid, password);
+  int attempts = 0;
+  while (WiFi.status() != WL_CONNECTED && attempts < 3) {
+    delay(500);
+    M5.Lcd.print(".");
+    attempts++;
+  }
+  if (WiFi.status() != WL_CONNECTED)
+    M5.Lcd.print("Not");
+  M5.Lcd.println("Connected to WiFi");
+  delay(200);
+  
+}
+void iot_wifi_end(){
+  // Disconnect from WiFi
+  WiFi.disconnect(true); // `true` will also disable the WiFi hardware
+}
+
+
+void get_request(const char* serverURL){
+  // Send GET request
+
+  WiFiClientSecure client;
+  client.setInsecure();
+  {
+    HTTPClient http;
+    Serial.printf("Calling http.begin for url : %s\n", serverURL);
+    Serial.println(http.begin(client, serverURL));
+
+    
+    int httpCode = http.GET();
+
+    if (httpCode > 0) {
+      M5.Lcd.println("Done");
+    } else {
+      M5.Lcd.printf("Error: %s\n", http.errorToString(httpCode).c_str());
+    }
+    delay(200);
+
+    http.end(); // Free resources
+  }
+}
+
 /// ENTRY ///
 void setup() {
+
+
 #if defined(CARDPUTER)
   auto cfg = M5.config();
   M5Cardputer.begin(cfg, true);
@@ -2622,6 +2725,9 @@ void loop() {
         cdown_setup();
         break;
 #endif
+      case 32:
+        iot_webremote_setup();
+        break;
       case 1:
         mmenu_setup();
         break;
@@ -2719,6 +2825,9 @@ void loop() {
       cdown_loop();
       break;
 #endif
+    case 32:
+      iot_webremote_loop();
+      break;
     case 1:
       mmenu_loop();
       break;
