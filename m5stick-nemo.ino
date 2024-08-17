@@ -379,6 +379,8 @@ void check_menu_press() {
       shutdownWebServer();
       portal_active = false;
     }
+    // if direct menu jump, free heap about bt
+    bt_free_heap();
     isSwitching = true;
     rstOverride = false;
     current_proc = 1;
@@ -1477,6 +1479,7 @@ MENU btmenu[] = {
 };
 int btmenu_size = sizeof(btmenu) / sizeof (MENU);
 
+BLEServer *pServer = nullptr;
 void btmenu_setup() {
   cursor = 0;
   sourApple = false;
@@ -1486,6 +1489,25 @@ void btmenu_setup() {
   rstOverride = true;
   drawmenu(btmenu, btmenu_size);
   delay(500); // Prevent switching after menu loads up
+
+  // Create the BLE Server
+  BLEDevice::init("");
+  pServer = BLEDevice::createServer(); // this line causes sys to hang
+  pAdvertising = pServer->getAdvertising();
+}
+
+void bt_free_heap(){
+  BLEDevice::deinit();
+
+  if (pAdvertising != nullptr) {
+    pAdvertising->stop();  // Stop any ongoing advertising
+    pAdvertising = nullptr; // Optional, to avoid dangling pointer
+  }
+
+  if (pServer != nullptr) {
+    delete pServer;  // Free memory
+    pServer = nullptr;  // Avoid dangling pointer
+  }
 }
 
 void btmenu_loop() {
@@ -1547,6 +1569,8 @@ void btmenu_loop() {
         break;
 
       case 5:
+        bt_free_heap();
+
         DISP.fillScreen(BGCOLOR);
         rstOverride = false;
         isSwitching = true;
@@ -2559,12 +2583,6 @@ void setup() {
 #endif
   // Random seed
   randomSeed(analogRead(0));
-
-  // Create the BLE Server
-  BLEDevice::init("");
-  BLEServer *pServer = BLEDevice::createServer();
-  pAdvertising = pServer->getAdvertising();
-  BLEAdvertisementData oAdvertisementData = BLEAdvertisementData();
 
   // Nemo Portal Init
   setupSdCard();
