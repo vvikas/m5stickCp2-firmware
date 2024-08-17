@@ -68,6 +68,7 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
 
 #if defined(STICK_C_PLUS2)
   #include <M5StickCPlus2.h>
+  #include "driver/rtc_io.h"
   // -=-=- Display -=-=-
   String platformName="StickC+2";
   #define BIG_TEXT 4
@@ -492,9 +493,60 @@ void screen_dim_proc() {
       if (uptime() == screen_dim_current || (uptime() + 1) == screen_dim_current || (uptime() + 2) == screen_dim_current) {
         screenBrightness(0);
         screen_dim_dimmed = true;
+        #if defined(RTC)
+          if(current_proc == 0){
+            // if clock then wake up every 5 minutes
+            sleep_proc_timed(5*60);
+          }
+          else if(current_proc == 30){
+            // find remaining counter time
+            int diff_ms = millis()-countdown_start;
+            int time_left_s = countdown_seconds - (diff_ms/1000) - 2;//wake up two seconds early
+            sleep_proc_timed(time_left_s);
+          }else
+        #endif
+        {
+          sleep_proc();
+        }
       }
     }
   }
+}
+
+// sleep till button press
+void sleep_proc() {
+  #if defined(STICK_C_PLUS2)
+    delay(20);
+    // Setup for sleep
+    Serial.printf("### Setting up sleep \n");
+
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_37,0); // M5_BUTTON_HOME
+
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+
+    esp_light_sleep_start();
+
+    rtc_gpio_deinit(GPIO_NUM_37);
+  #endif
+}
+
+// sleep till button press or countdown time up
+void sleep_proc_timed(int sec) {
+  #if defined(STICK_C_PLUS2)
+    delay(20);
+    // Setup for sleep
+    Serial.printf("### Setting up sleep \n");
+
+    esp_sleep_enable_ext0_wakeup(GPIO_NUM_37,0); // M5_BUTTON_HOME
+
+    esp_sleep_enable_timer_wakeup(((uint64_t)sec)*1000*1000); // wakeup when time up
+
+    esp_light_sleep_start();
+
+    rtc_gpio_deinit(GPIO_NUM_37);
+
+    dimtimer(); // rest dim timer
+  #endif
 }
 
 /// Dimmer MENU ///
@@ -2499,8 +2551,8 @@ void setup() {
   digitalWrite(IRLED, M5LED_OFF); //LEDOFF
 #endif
 #if !defined(KB)
-  pinMode(M5_BUTTON_HOME, INPUT);
-  pinMode(M5_BUTTON_RST, INPUT);
+  pinMode(M5_BUTTON_HOME, INPUT_PULLUP);
+  pinMode(M5_BUTTON_RST, INPUT_PULLUP);
 #endif
 #if defined(M5_BUTTON_MENU)
   pinMode(M5_BUTTON_MENU, INPUT);
