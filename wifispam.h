@@ -70,14 +70,17 @@ const char funnyssids[] PROGMEM = {
 };
 
 const char rickrollssids[] PROGMEM = {
-  "01 Never gonna give you up\n"
-  "02 Never gonna let you down\n"
-  "03 Never gonna run around\n"
-  "04 and desert you\n"
-  "05 Never gonna make you cry\n"
-  "06 Never gonna say goodbye\n"
-  "07 Never gonna tell a lie\n"
-  "08 and hurt you\n"
+  "01 Ooh ooh aah aah sexy eyes\n"
+  "02 I'm gonna take you to paradise\n"
+  "03 Hey hey my my can't you see\n"
+  "04 You were born to dance with me\n"
+
+  "05 Ooh ooh aah aah sexy eyes\n"
+  "06 You know I'm neva gonna tell you lies\n"
+  "07 Hey hey my my look at me\n"
+  "08 You got me feeling free\n"
+
+  "09 Na na na na...\n"
 };
 
 // run-time variables

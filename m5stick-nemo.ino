@@ -3,13 +3,13 @@
 
 // -=-=-=-=-=-=- Uncomment the platform you're building for -=-=-=-=-=-=-
 // #define STICK_C_PLUS
-// #define STICK_C_PLUS2
+#define STICK_C_PLUS2
 // #define STICK_C
 // #define CARDPUTER
 // -=-=- Uncommenting more than one at a time will result in errors -=-=-
 
 // -=-=- NEMO Language for Menu and Portal -=- Thanks, @marivaaldo and @Mmatuda! -=-=-
-// #define LANGUAGE_EN_US
+#define LANGUAGE_EN_US
 // #define LANGUAGE_PT_BR
 // #define LANGUAGE_IT_IT
 // #define LANGUAGE_FR_FR
@@ -83,16 +83,16 @@ uint16_t FGCOLOR=0xFFF1; // placeholder
   #define SDCARD   //Requires a custom-built adapter
   #define PWRMGMT
   #define SPEAKER M5.Speaker
-  //#define SONG
+  #define SONG
   // -=-=- ALIASES -=-=-
   #define DISP M5.Lcd
   #define IRLED 19
-  #define BITMAP M5.Lcd.drawBmp(NEMOMatrix, 97338)
+  #define BITMAP M5.Lcd.drawBmp(NEMOMatrix, 97254)
   #define M5_BUTTON_MENU 35
   #define M5_BUTTON_HOME 37
   #define M5_BUTTON_RST 39
   #define BACKLIGHT 27
-  #define MINBRIGHT 190
+  #define MINBRIGHT 0
   #define SD_CLK_PIN 0
   #define SD_MISO_PIN 36
   #define SD_MOSI_PIN 26
@@ -2051,9 +2051,11 @@ void wscan_result_loop(){
    if(check_select_press()){
       apMac=WiFi.BSSIDstr(cursor);
       apSsidName=WiFi.SSID(cursor);
-      channel = static_cast<uint8_t>(WiFi.channel(cursor));                            // DEAUTH - save channel
-      uint8_t* bssid = WiFi.BSSID(cursor);                                             // DEAUTH - save BSSID (AP MAC)
-      memcpy(ap_record.bssid, bssid, 6);                                               // DEAUTH - cpy bssid to memory
+      #if defined(DEAUTHER)
+        channel = static_cast<uint8_t>(WiFi.channel(cursor));                            // DEAUTH - save channel
+        uint8_t* bssid = WiFi.BSSID(cursor);                                             // DEAUTH - save BSSID (AP MAC)
+        memcpy(ap_record.bssid, bssid, 6);                                               // DEAUTH - cpy bssid to memory
+      #endif
       rstOverride = false;
       current_proc = 20;
       isSwitching = true;
@@ -2221,10 +2223,13 @@ void bootScreen(){
   BITMAP;
   delay(3000);
   #endif
+  #ifdef STICK_C_PLUS2
+  StickCP2.update();
+  #endif
   DISP.fillScreen(BGCOLOR);
   DISP.setTextSize(BIG_TEXT);
-  DISP.setCursor(40, 0);
-  DISP.println("M5-NEMO");
+  DISP.setCursor(20, 0);
+  DISP.println("INVIC7US");
   DISP.setCursor(10, 30);
   DISP.setTextSize(SMALL_TEXT);
   DISP.printf("%s-%s\n",NEMO_VERSION,platformName);
@@ -2394,7 +2399,7 @@ void setup() {
       EEPROM.write(1, 15);   // 15 second auto dim time
       EEPROM.write(2, 100);  // 100% brightness
       EEPROM.write(3, 0);    // TVBG NA Region
-      EEPROM.write(4, 11);   // FGColor Green
+      EEPROM.write(4, 5);   // FGColor Red
       EEPROM.write(5, 1);    // BGcolor Black
       EEPROM.commit();
     }
@@ -2440,10 +2445,14 @@ void setup() {
   dimtimer();
   DISP.setRotation(rotation);
   DISP.setTextColor(FGCOLOR, BGCOLOR);
+
   bootScreen();
 }
 
 void loop() {
+  #ifdef STICK_C_PLUS2
+  StickCP2.update();
+  #endif
   // This is the code to handle running the main loops
   // Background processes
   switcher_button_proc();
